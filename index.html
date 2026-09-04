@@ -77,7 +77,6 @@
       cursor: pointer;
       font-size: 11px;
       white-space: nowrap;
-      transition: 0.15s;
       border: 1px solid #3e6b8f;
       display: flex;
       align-items: center;
@@ -90,9 +89,6 @@
 
     .btn-action:hover {
       background: #3b6b8f;
-    }
-    .btn-action:active {
-      transform: scale(0.95);
     }
 
     .messenger {
@@ -273,7 +269,6 @@
       font-size: 20px;
       color: #fff;
       cursor: pointer;
-      transition: 0.15s;
       box-shadow: 0 2px 6px rgba(0,0,0,0.3);
       border: 1px solid #3e6b8f;
       height: 38px;
@@ -285,14 +280,12 @@
       line-height: 1;
     }
 
-    .btn-send:active {
-      transform: scale(0.94);
-      background: #1f405c;
+    .btn-send:hover {
+      background: #3b6b8f;
     }
 
     .btn-send:disabled {
       opacity: 0.4;
-      transform: none;
       pointer-events: none;
     }
 
@@ -440,9 +433,9 @@
   <div class="top-panel">
     <textarea id="scenarioInput" placeholder="Script..."></textarea>
     <div class="btn-group">
-      <button class="btn-action" id="formatButton" title="Informalize script">🔧</button>
-      <button class="btn-action" id="namesButton" title="Edit names">👤</button>
-      <button class="btn-action" id="exportButton" title="Export to clipboard">📋</button>
+      <button class="btn-action" id="formatButton" alt="Format/informalize">🔧</button>
+      <button class="btn-action" id="namesButton" alt="Change names">👤</button>
+      <button class="btn-action" id="exportButton" alt="export to clipboard">📋</button>
     </div>
   </div>
 
@@ -460,7 +453,7 @@
       <div class="own-message-area">
         <div class="own-input-row">
           <textarea id="ownMessageInput" placeholder="Message" rows="1"></textarea>
-          <button class="btn-send" id="sendButton" title="Send (Enter)">✉</button>
+          <button class="btn-send" id="sendButton">✉</button>
         </div>
       </div>
     </div>
@@ -505,7 +498,6 @@
 
     let messageQueue = [];
     let isScenarioFinished = false;
-    let scenarioLoaded = false;
 
     let ownName = 'user';
     let otherName = 'interlocutor';
@@ -559,24 +551,23 @@
     formatButton.addEventListener('click', function() {
       const raw = scenarioInput.value;
       if (!raw.trim()) {
+        alert('⚠️ Script field is empty.');
         return;
       }
       const formatted = formatText(raw);
       scenarioInput.value = formatted;
       loadScript();
-      formatButton.style.background = '#3b8f6b';
-      setTimeout(() => {
-        formatButton.style.background = '#2b5278';
-      }, 500);
     });
 
     // ===== SCRIPT LOADING =====
     function parseScriptToQueue(text) {
       if (!text || text.trim() === '') return [];
+      
       if (!text.includes('---')) {
         const trimmed = text.trim();
         return trimmed ? [trimmed] : [];
       }
+      
       const parts = text.split(/^\s*---\s*$/m);
       const result = [];
       for (let part of parts) {
@@ -592,10 +583,8 @@
       if (newQueue.length > 0) {
         isScenarioFinished = false;
         messageQueue = newQueue;
-        scenarioLoaded = true;
       } else {
         messageQueue = [];
-        scenarioLoaded = false;
       }
       updateUI();
     }
@@ -622,7 +611,7 @@
     function createMessageElement(text, type) {
       const msgDiv = document.createElement('div');
       msgDiv.className = `message ${type}`;
-      msgDiv.innerHTML = text;
+      msgDiv.textContent = text;
       return msgDiv;
     }
 
@@ -641,7 +630,6 @@
       if (messageQueue.length === 0) {
         isScenarioFinished = true;
         scenarioInput.value = '';
-        scenarioLoaded = false;
         updateUI();
         return;
       }
@@ -649,8 +637,8 @@
     }
 
     function sendOwnMessage() {
-      const text = ownMessageInput.value.trim();
-      if (!text) return;
+      const text = ownMessageInput.value;
+      if (!text.trim()) return;
 
       const msgDiv = createMessageElement(text, 'own');
       messageContainer.appendChild(msgDiv);
@@ -660,27 +648,30 @@
       updateUI();
     }
 
+    // ===== FIXED: HANDLE SEND =====
     function handleSend() {
       const hasOwnText = ownMessageInput.value.trim() !== '';
       const hasQueue = messageQueue.length > 0;
+      const hasScript = scenarioInput.value.trim() !== '';
 
-      if (isScenarioFinished) {
-        if (hasOwnText) sendOwnMessage();
-        return;
-      }
-
+      // Если есть своё сообщение — всегда отправляем его
       if (hasOwnText) {
         sendOwnMessage();
         return;
       }
 
+      // Если есть очередь — отправляем сценарий
       if (hasQueue) {
         sendScenarioMessage();
         return;
       }
 
-      // Если сценарий ещё не загружен, но в поле есть текст
-      if (scenarioInput.value.trim() !== '' && !scenarioLoaded) {
+      // Если поле сценария не пустое — загружаем и отправляем
+      if (hasScript) {
+        // Если сценарий был завершён, сбрасываем флаг
+        if (isScenarioFinished) {
+          isScenarioFinished = false;
+        }
         loadScript();
         if (messageQueue.length > 0) {
           sendScenarioMessage();
@@ -696,8 +687,8 @@
       messages.forEach(msg => {
         const isOwn = msg.classList.contains('own');
         const isReceived = msg.classList.contains('received');
-        const text = msg.textContent.trim();
-        if (text) {
+        const text = msg.textContent;
+        if (text && text.trim()) {
           if (isOwn) {
             result += `[${getOwnName()}]\n${text}\n\n`;
           } else if (isReceived) {
@@ -710,11 +701,9 @@
 
     exportButton.addEventListener('click', function() {
       const result = exportChat();
-      if (!result) {
-        return;
-      }
-      navigator.clipboard.writeText(result).then(() => {
-      }).catch(() => {
+      if (!result) return;
+      
+      navigator.clipboard.writeText(result).catch(() => {
         const textarea = document.createElement('textarea');
         textarea.value = result;
         document.body.appendChild(textarea);
@@ -736,8 +725,10 @@
     }
 
     function onScenarioChange() {
-      // Просто обновляем UI, не трогаем очередь
-      // Сценарий загружается только через loadScript() или format
+      // Если сценарий завершён и пользователь что-то пишет — сбрасываем флаг
+      if (isScenarioFinished && scenarioInput.value.trim() !== '') {
+        isScenarioFinished = false;
+      }
       updateUI();
     }
 
