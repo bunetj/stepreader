@@ -1,4 +1,23 @@
-# scripted chat
+# progressive reading
+
+different modes to fragmentize long text and imitate more stupid or chunked formats.
+
+current formats
+
+- messenger
+- subtitles
+- progressive revealing
+
+(*) related topics (by ai):
+
+RSVP (Rapid Serial Visual Presentation)
+nlp
+incremental reading
+
+Incrementum
+julia reader
+
+## scripted chat
 
 a scripted telegram chat simulator. (it doesn't look like real tg.)
 
