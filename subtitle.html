@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Subtitle</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#fff;font-family:system-ui,sans-serif;padding:16px;display:flex;flex-direction:column;align-items:center}
+.app{max-width:640px;width:100%}
+textarea{width:100%;padding:10px;border:1px solid #ccc;border-radius:6px;font-size:14px;min-height:70px;resize:vertical}
+.row{display:flex;gap:6px;margin:8px 0;flex-wrap:wrap;align-items:center}
+.row button,.row input{padding:6px 12px;border:1px solid #ccc;border-radius:4px;background:#f5f5f5;cursor:pointer;font-size:13px}
+.row button:hover{background:#ddd}
+.row input{width:50px;cursor:text}
+.sub-wrap{background:#fff;padding:40px 10px;display:flex;justify-content:center;min-height:120px;align-items:center}
+.sub-text{display:inline-block;background:#000;color:#fff;font-size:28px;font-weight:500;padding:6px 20px;border-radius:4px;text-align:center;white-space:pre-wrap;word-break:break-word;max-width:100%}
+</style>
+</head>
+<body>
+<div class="app">
+<textarea id="inputText" placeholder="Paste text here"></textarea>
+<div class="row">
+<button id="fontSmall">A−</button>
+<button id="fontBig">A+</button>
+<span id="sizeLabel">18px</span>
+<button id="lowBtn">low</button>
+<button id="punctBtn">punct</button>
+<label>words: <input type="number" id="wordCount" value="3" min="1" style="width:60px;"/></label>
+<button id="applyBtn">apply</button>
+</div>
+<div class="sub-wrap">
+<div class="sub-text" id="display"></div>
+</div>
+</div>
+
+<script>
+// ===== ШРИФТ =====
+let fontSize = 18;
+const displayEl = document.getElementById('display');
+
+function applyFontSize() {
+  if (displayEl) displayEl.style.fontSize = fontSize + 'px';
+  document.getElementById('sizeLabel').textContent = fontSize + 'px';
+}
+
+document.getElementById('fontSmall').onclick = () => {
+  fontSize = Math.max(fontSize - 2, 10);
+  applyFontSize();
+};
+document.getElementById('fontBig').onclick = () => {
+  fontSize = Math.min(fontSize + 2, 40);
+  applyFontSize();
+};
+
+// ===== ФОРМАТТЕРЫ =====
+function toLower(t) { return t.toLowerCase(); }
+
+function splitPunct(t) {
+  // Сначала обрабатываем " - " как разделитель
+  let result = t.replace(/ - /g, '§');
+  
+  const paragraphs = result.split(/\n\s*\n/);
+  const output = [];
+  
+  for (const p of paragraphs) {
+    // Убираем знаки препинания, НО НЕ ДЕФИС (убрал \- из конца)
+    const cleaned = p.replace(
+      /[.,!?;:""„”’‘‛‚“`´ʹʺʻʼˈˈˊˋˌ״〃＂〟〝〞‟′″‴‵‶‷❝❞〝〞〟＂｢｣—–]/g,
+      '§'
+    );
+    const parts = cleaned.split(/§+/).filter(s => s.trim());
+    output.push(...parts);
+  }
+  
+  return output;
+}
+
+function splitWords(t, n) {
+  const words = t.split(/\s+/).filter(s => s.length > 0);
+  const chunks = [];
+  for (let i = 0; i < words.length; i += n) {
+    chunks.push(words.slice(i, i + n).join(' '));
+  }
+  return chunks;
+}
+
+// ===== ПРИЛОЖЕНИЕ =====
+const input = document.getElementById('inputText');
+const display = document.getElementById('display');
+const lowBtn = document.getElementById('lowBtn');
+const punctBtn = document.getElementById('punctBtn');
+const applyBtn = document.getElementById('applyBtn');
+const wordCount = document.getElementById('wordCount');
+
+let blocks = [];
+let idx = 0;
+let hasContent = false;
+let lastText = input.value;
+
+function render() {
+  if (!blocks.length || !hasContent) {
+    display.textContent = '';
+    return;
+  }
+  if (idx >= blocks.length) idx = blocks.length - 1;
+  if (idx < 0) idx = 0;
+  display.textContent = blocks[idx];
+  applyFontSize();
+}
+
+function loadFromTextbox() {
+  const raw = input.value;
+  blocks = raw.split(/\n\s*\n/).filter(s => s.trim());
+  hasContent = blocks.length > 0;
+  idx = 0;
+  render();
+}
+
+function formatAndShow(fn) {
+  const raw = input.value;
+  const b = fn(raw);
+  if (b.length) {
+    const cleaned = b.map(s => s.trim().replace(/\n\s*\n/g, ' '));
+    const joined = cleaned.join('\n\n');
+    input.value = joined;
+    blocks = cleaned;
+    hasContent = true;
+    idx = 0;
+    render();
+  }
+}
+
+lowBtn.onclick = () => {
+  input.value = toLower(input.value);
+  lastText = input.value;
+  loadFromTextbox();
+};
+
+punctBtn.onclick = () => formatAndShow(splitPunct);
+
+applyBtn.onclick = () => {
+  const n = parseInt(wordCount.value) || 3;
+  const raw = input.value;
+  const b = splitWords(raw, n);
+  if (b.length) {
+    const cleaned = b.map(s => s.trim().replace(/\n\s*\n/g, ' '));
+    const joined = cleaned.join('\n\n');
+    input.value = joined;
+    blocks = cleaned;
+    hasContent = true;
+    idx = 0;
+    render();
+  }
+};
+
+// ===== СЛЕДИМ ЗА ИЗМЕНЕНИЕМ ТЕКСТБОКСА =====
+input.addEventListener('input', function() {
+  if (this.value !== lastText) {
+    lastText = this.value;
+    hasContent = false;
+    blocks = [];
+    display.textContent = '';
+  }
+});
+
+// ===== КЛАВИАТУРА =====
+document.addEventListener('keydown', (e) => {
+  if (e.target.tagName === 'TEXTAREA') return;
+
+  if (e.key === 'ArrowLeft') {
+    e.preventDefault();
+    if (!hasContent) {
+      loadFromTextbox();
+      return;
+    }
+    if (idx > 0) { idx--; render(); }
+    return;
+  }
+  if (e.key === 'ArrowRight') {
+    e.preventDefault();
+    if (!hasContent) {
+      loadFromTextbox();
+      return;
+    }
+    if (idx < blocks.length - 1) { idx++; render(); }
+    return;
+  }
+
+  if (e.key === ' ' || e.key === 'Enter') {
+    e.preventDefault();
+    if (!hasContent) {
+      loadFromTextbox();
+      return;
+    }
+    if (e.shiftKey) {
+      if (idx > 0) { idx--; render(); }
+    } else {
+      if (idx < blocks.length - 1) { idx++; render(); }
+    }
+  }
+});
+
+applyFontSize();
+</script>
+</body>
+</html>

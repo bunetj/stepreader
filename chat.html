@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chat</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0e1621;font-family:system-ui,sans-serif;display:flex;flex-direction:column;align-items:center;padding:16px;gap:12px}
+.app{max-width:480px;width:100%}
+textarea{width:100%;padding:10px;border:1px solid #2b3b4a;border-radius:12px;background:#1f2c38;color:#e8edf2;font-size:14px;min-height:60px;resize:vertical;margin-bottom:8px}
+.row{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:8px}
+.row button,.row input,.row select{padding:5px 12px;border:1px solid #2b3b4a;border-radius:6px;background:#2b5278;color:#fff;cursor:pointer;font-size:12px}
+.row button:hover{background:#3b6b8f}
+.row input{width:50px;background:#1f2c38;color:#e8edf2;cursor:text}
+.chat{background:#17212b;border-radius:20px;overflow:hidden;border:1px solid #2b3b4a;display:flex;flex-direction:column;height:60vh;max-height:500px}
+.header{padding:12px 16px;background:#1f2c38;border-bottom:1px solid #2b3b4a;display:flex;align-items:center;gap:10px}
+.avatar{width:36px;height:36px;background:#2b5278;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px}
+.chat-name{color:#fff;font-weight:600}
+.msgs{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:4px}
+.msg{max-width:85%;padding:6px 14px;border-radius:16px;font-size:14px;color:#e8edf2;white-space:pre-wrap;word-break:break-word}
+.msg.own{background:#2b5278;align-self:flex-end;border-bottom-right-radius:4px}
+.msg.recv{background:#2b3b4a;align-self:flex-start;border-bottom-left-radius:4px}
+.input-area{background:#1f2c38;padding:8px 12px;border-top:1px solid #2b3b4a;display:flex;gap:8px}
+.input-area textarea{flex:1;border:none;border-radius:20px;padding:8px 14px;background:#2b3b4a;color:#e8edf2;min-height:36px;max-height:36px;resize:none;font-size:14px}
+.input-area textarea:focus{background:#314453}
+.input-area button{padding:6px 16px;background:#2b5278;border:none;border-radius:20px;color:#fff;cursor:pointer;font-size:16px}
+.input-area button:hover{background:#3b6b8f}
+.input-area button:disabled{opacity:0.4;pointer-events:none}
+.modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:999;justify-content:center;align-items:center}
+.modal.active{display:flex}
+.modal-box{background:#1f2c38;padding:24px;border-radius:16px;max-width:340px;width:90%;border:1px solid #2b3b4a}
+.modal-box h3{color:#fff;margin-bottom:4px}
+.modal-box .sub{color:#8e9aa5;font-size:12px;margin-bottom:14px}
+.modal-box label{color:#8e9aa5;font-size:12px;display:block;margin-bottom:2px}
+.modal-box input{width:100%;padding:8px 12px;background:#2b3b4a;border:none;border-radius:8px;color:#e8edf2;margin-bottom:12px}
+.modal-box .btn-row{display:flex;gap:8px;justify-content:flex-end}
+.modal-box .btn-row button{padding:6px 16px;border:none;border-radius:20px;cursor:pointer}
+.modal-box .btn-cancel{background:#2b3b4a;color:#8e9aa5}
+.modal-box .btn-save{background:#2b5278;color:#fff}
+</style>
+</head>
+<body>
+<div class="app">
+<textarea id="inputText" placeholder="Paste script with ---"></textarea>
+<div class="row">
+<button id="fontSmall">A−</button>
+<button id="fontBig">A+</button>
+<span id="sizeLabel">18px</span>
+<button id="lowBtn">low</button>
+<button id="punctBtn">punct</button>
+<button id="sentBtn">sentences</button>
+<label>words: <input type="number" id="wordCount" value="3" min="1" style="width:60px;"></label>
+<button id="applyBtn">apply</button>
+<button id="namesBtn">👤</button>
+<button id="exportBtn">📋</button>
+</div>
+<div class="chat">
+<div class="header">
+<div class="avatar">👤</div>
+<div class="chat-name" id="chatName">interlocutor</div>
+</div>
+<div class="msgs" id="msgs"></div>
+<div class="input-area">
+<textarea id="ownInput" placeholder="Message" rows="1"></textarea>
+<button id="sendBtn">✉</button>
+</div>
+</div>
+</div>
+<div class="modal" id="modal"><div class="modal-box">
+<h3>Names</h3><div class="sub">For export</div>
+<label>Your name</label><input type="text" id="modalOwn" value="user">
+<label>Interlocutor</label><input type="text" id="modalOther" value="interlocutor">
+<div class="btn-row"><button class="btn-cancel" id="modalCancel">Cancel</button><button class="btn-save" id="modalSave">Save</button></div>
+</div></div>
+
+<script>
+// ===== ШРИФТ =====
+let fontSize=18;
+document.getElementById('fontSmall').onclick=function(){fontSize=Math.max(fontSize-2,10);applyFontSize()};
+document.getElementById('fontBig').onclick=function(){fontSize=Math.min(fontSize+2,40);applyFontSize()};
+function applyFontSize(){
+ document.querySelectorAll('.msg').forEach(el=>el.style.fontSize=fontSize+'px');
+ document.getElementById('sizeLabel').textContent=fontSize+'px';
+}
+
+// ===== ФУНКЦИИ =====
+function toLower(t){return t.toLowerCase()}
+function splitPunct(t){
+  // Заменяем " - " (пробел-дефис-пробел) на § (разделитель)
+  let result = t.replace(/ - /g, '§');
+  
+  // Заменяем все остальные знаки препинания на § (кроме дефиса -)
+  result = result.replace(/[.,!?;:""''„”’‘‛‚“`´ʹʺʻʼˈˈˊˋˌ״〃＂〟〝〞‟′″‴‵‶‷❝❞〝〞〟＂｢｣—–]/g, '§');
+  
+  // Разбиваем по §, убираем пустые блоки
+  return result.split(/§+/).filter(s => s.trim());
+}
+function splitWords(t,n){let w=t.split(/\s+/).filter(s=>s);let r=[];for(let i=0;i<w.length;i+=n)r.push(w.slice(i,i+n).join(' '));return r}
+function splitSentences(t){let p=t.split(/([.!?]+\s*)/);let r=[];for(let i=0;i<p.length;i+=2){let c=(p[i]||'')+(p[i+1]||'');if(c.trim())r.push(c.trim())}return r.length?r:[t]}
+function splitSep(t){return t.split(/\n\s*---\s*\n/).filter(s=>s.trim())}
+
+// ===== APP =====
+const input=document.getElementById('inputText');
+const msgs=document.getElementById('msgs');
+const ownInput=document.getElementById('ownInput');
+const sendBtn=document.getElementById('sendBtn');
+const lowBtn=document.getElementById('lowBtn');
+const punctBtn=document.getElementById('punctBtn');
+const sentBtn=document.getElementById('sentBtn');
+const applyBtn=document.getElementById('applyBtn');
+const wordCount=document.getElementById('wordCount');
+const namesBtn=document.getElementById('namesBtn');
+const exportBtn=document.getElementById('exportBtn');
+const chatName=document.getElementById('chatName');
+const modal=document.getElementById('modal');
+const modalOwn=document.getElementById('modalOwn');
+const modalOther=document.getElementById('modalOther');
+const modalCancel=document.getElementById('modalCancel');
+const modalSave=document.getElementById('modalSave');
+
+let ownName='user',otherName='interlocutor';
+let queue=[],finished=false;
+
+function updateChatName(){chatName.textContent=otherName}
+
+function addMsg(text,type){
+ let d=document.createElement('div');
+ d.className='msg '+type;
+ d.textContent=text;
+ msgs.appendChild(d);
+ msgs.scrollTop=msgs.scrollHeight;
+ applyFontSize();
+}
+
+function updateUI(){
+ let hasQueue=queue.length>0,hasOwn=ownInput.value.trim()!=='';
+ sendBtn.disabled=!(hasQueue||hasOwn||input.value.trim()!=='');
+}
+
+function loadChat(){
+ let raw=input.value;
+ let b=splitSep(raw);
+ queue=b.filter(s=>s.trim());
+ finished=false;
+ updateUI();
+ applyFontSize();
+}
+
+function sendScenario(){
+ if(finished||!queue.length)return;
+ let next=queue.shift();
+ addMsg(next,'recv');
+ if(!queue.length){finished=true;input.value=''}
+ updateUI();
+}
+
+function sendOwn(){
+ let t=ownInput.value.trim();if(!t)return;
+ addMsg(t,'own');ownInput.value='';updateUI();
+}
+
+function handleSend(){
+ let hasOwn=ownInput.value.trim()!=='';
+ let hasQueue=queue.length>0;
+ let hasScript=input.value.trim()!=='';
+ if(hasOwn){sendOwn();return}
+ if(hasQueue){sendScenario();return}
+ if(hasScript){if(finished)finished=false;loadChat();if(queue.length)sendScenario();return}
+}
+
+function format(fn){
+ let raw=input.value;
+ let b=fn(raw);
+ input.value=b.map(s=>s.trim()).join('\n---\n');
+ loadChat();
+}
+
+lowBtn.onclick=function(){input.value=toLower(input.value);loadChat()}
+punctBtn.onclick=function(){format(splitPunct)}
+sentBtn.onclick=function(){format(splitSentences)}
+applyBtn.onclick=function(){let n=parseInt(wordCount.value)||3;let raw=input.value;let b=splitWords(raw,n);input.value=b.map(s=>s.trim()).join('\n---\n');loadChat()}
+
+namesBtn.onclick=function(){modalOwn.value=ownName;modalOther.value=otherName;modal.classList.add('active')}
+modalCancel.onclick=function(){modal.classList.remove('active')}
+modalSave.onclick=function(){ownName=modalOwn.value.trim()||'user';otherName=modalOther.value.trim()||'interlocutor';updateChatName();modal.classList.remove('active')}
+modal.onclick=function(e){if(e.target===modal)modal.classList.remove('active')}
+
+exportBtn.onclick=function(){
+ let items=msgs.querySelectorAll('.msg');
+ let r='';
+ items.forEach(m=>{
+  let isOwn=m.classList.contains('own');
+  let t=m.textContent;
+  if(t.trim())r+='['+(isOwn?ownName:otherName)+']\n'+t+'\n\n';
+ });
+ if(r)navigator.clipboard.writeText(r).catch(()=>{let ta=document.createElement('textarea');ta.value=r;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta)});
+}
+
+sendBtn.onclick=handleSend;
+ownInput.onkeydown=function(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();handleSend()}}
+ownInput.oninput=updateUI;
+input.oninput=function(){if(finished&&this.value.trim())finished=false;updateUI()};
+
+updateChatName();
+loadChat();
+updateUI();
+</script>
+</body>
+</html>
