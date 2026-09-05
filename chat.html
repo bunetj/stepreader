@@ -76,7 +76,7 @@ textarea{width:100%;padding:10px;border:1px solid #2b3b4a;border-radius:12px;bac
 
 <script>
 // ===== ШРИФТ =====
-let fontSize=18;
+let fontSize=14;
 document.getElementById('fontSmall').onclick=function(){fontSize=Math.max(fontSize-2,10);applyFontSize()};
 document.getElementById('fontBig').onclick=function(){fontSize=Math.min(fontSize+2,40);applyFontSize()};
 function applyFontSize(){
@@ -85,15 +85,34 @@ function applyFontSize(){
 }
 
 // ===== ФУНКЦИИ =====
-function toLower(t){return t.toLowerCase()}
-function splitPunct(t){
-  // Заменяем " - " (пробел-дефис-пробел) на § (разделитель)
+function toLower(t){
+  return t
+    .toLowerCase()
+    .replace(/[""]/g, '"')
+    .replace(/['']/g, "'")
+    .replace(/[‚‛]/g, "'")
+    .replace(/[„“”]/g, '"')
+    .replace(/[’‘]/g, "'")
+    .replace(/[‹›]/g, "'")
+    .replace(/[«»]/g, '"');
+}
+function splitPunct(t) {
+  // 1. Заменяем " - " на разделитель
   let result = t.replace(/ - /g, '§');
   
-  // Заменяем все остальные знаки препинания на § (кроме дефиса -)
-  result = result.replace(/[.,!?;:""''„”’‘‛‚“`´ʹʺʻʼˈˈˊˋˌ״〃＂〟〝〞‟′″‴‵‶‷❝❞〝〞〟＂｢｣—–]/g, '§');
+  // 2. Заменяем все последовательности \n (один или несколько) на разделитель
+  result = result.replace(/\n+/g, '§');
   
-  // Разбиваем по §, убираем пустые блоки
+  // 3. Знаки препинания . , ; : ! ? — только если после них пробел, \n или конец
+  result = result.replace(/[.,;:!?]/g, function(match, offset) {
+    const next = result[offset + 1] || '';
+    if (next === ' ' || next === '\n' || next === '') {
+      return '§';
+    }
+    return match;
+  });
+  
+  // 4. Разбиваем по §, убираем пустые
   return result.split(/§+/).filter(s => s.trim());
 }
 function splitWords(t,n){let w=t.split(/\s+/).filter(s=>s);let r=[];for(let i=0;i<w.length;i+=n)r.push(w.slice(i,i+n).join(' '));return r}
@@ -124,13 +143,18 @@ let queue=[],finished=false;
 
 function updateChatName(){chatName.textContent=otherName}
 
-function addMsg(text,type){
- let d=document.createElement('div');
- d.className='msg '+type;
- d.textContent=text;
- msgs.appendChild(d);
- msgs.scrollTop=msgs.scrollHeight;
- applyFontSize();
+function addMsg(text, type) {
+  let d = document.createElement('div');
+  d.className = 'msg ' + type;
+  d.textContent = text;
+  msgs.appendChild(d);
+  
+  // ждем рендера
+  requestAnimationFrame(() => {
+    msgs.scrollTop = msgs.scrollHeight;
+  });
+  
+  applyFontSize();
 }
 
 function updateUI(){
