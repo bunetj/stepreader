@@ -12,13 +12,10 @@ textarea{width:100%;padding:10px;border:1px solid #444;border-radius:6px;backgro
 .row{display:flex;gap:6px;margin:8px 0;flex-wrap:wrap;align-items:center}
 .row button,.row input{padding:6px 12px;border:1px solid #444;border-radius:4px;background:#2a2a2a;color:#ddd;cursor:pointer;font-size:13px}
 .row button:hover{background:#3a3a3a}
-.row input{width:50px;cursor:text}
+.row input{width:60px;cursor:text}
 .chunks{background:#1a1a1a;border:1px solid #333;border-radius:6px;padding:20px 16px;min-height:200px;max-height:50vh;overflow-y:auto;font-size:18px;line-height:1.8;color:#ddd;white-space:pre-wrap}
 .chunks .hidden{visibility:hidden}
 .chunks .revealed{visibility:visible}
-
-
-
 </style>
 </head>
 <body>
@@ -30,7 +27,8 @@ textarea{width:100%;padding:10px;border:1px solid #444;border-radius:6px;backgro
 <span id="sizeLabel">18px</span>
 <button id="lowBtn">low</button>
 <button id="sentBtn">sentences</button>
-<label>words: <input type="number" id="wordCount" value="6" min="1" style="width:60px;"/></label>
+<button id="punctBtn">punct</button>
+<label>words: <input type="number" id="wordCount" value="6" min="1"/></label>
 <button id="applyBtn">apply</button>
 </div>
 <div class="chunks" id="display"></div>
@@ -38,7 +36,7 @@ textarea{width:100%;padding:10px;border:1px solid #444;border-radius:6px;backgro
 
 <script>
 // ===== ШРИФТ =====
-let fontSize = 18;
+let fontSize = 14;
 const displayEl = document.getElementById('display');
 
 function applyFontSize() {
@@ -55,27 +53,77 @@ document.getElementById('fontBig').onclick = () => {
   applyFontSize();
 };
 
-// ===== ФОРМАТТЕРЫ (СОХРАНЯЮТ ВСЁ) =====
+// ===== ФОРМАТТЕРЫ =====
 function toLower(t) { return t.toLowerCase(); }
 
+// Режим 1: по предложениям (.!?) — с поддержкой троеточия
 function splitSentences(t) {
   const result = [];
   let start = 0;
-  for (let i = 0; i < t.length; i++) {
-    if (t[i] === '.' || t[i] === '!' || t[i] === '?') {
-      const next = t[i + 1] || '';
+  let i = 0;
+  while (i < t.length) {
+    // Проверяем на троеточие (… или ...)
+    if (t[i] === '…' || (t[i] === '.' && t[i+1] === '.' && t[i+2] === '.')) {
+      const len = t[i] === '…' ? 1 : 3;
+      const next = t[i+len] || '';
       if (next === ' ' || next === '\n' || next === '\t' || !next) {
-        result.push(t.slice(start, i + 1).trim());
+        result.push(t.slice(start, i + len));
+        start = i + len;
+        i += len;
+        continue;
+      }
+    }
+    // Обычные . ! ?
+    if (t[i] === '.' || t[i] === '!' || t[i] === '?') {
+      const next = t[i+1] || '';
+      if (next === ' ' || next === '\n' || next === '\t' || !next) {
+        result.push(t.slice(start, i + 1));
         start = i + 1;
       }
     }
+    i++;
   }
-  if (start < t.length) result.push(t.slice(start).trim());
+  if (start < t.length) result.push(t.slice(start));
   return result.length ? result : [t];
 }
 
+// Режим 2: по знакам препинания (,.!?:;) — с поддержкой троеточия
+// ТИРЕ (—, –) НЕ ТРОГАЕМ
+function splitPunct(t) {
+  const result = [];
+  let start = 0;
+  let i = 0;
+  while (i < t.length) {
+    // Проверяем на троеточие (… или ...)
+    if (t[i] === '…' || (t[i] === '.' && t[i+1] === '.' && t[i+2] === '.')) {
+      const len = t[i] === '…' ? 1 : 3;
+      const next = t[i+len] || '';
+      if (next === ' ' || next === '\n' || next === '\t' || !next) {
+        result.push(t.slice(start, i + len));
+        start = i + len;
+        i += len;
+        continue;
+      }
+    }
+    // Обычные знаки препинания (без тире)
+    const ch = t[i];
+    if (ch === ',' || ch === '.' || ch === '!' || ch === '?' || ch === ';' || ch === ':') {
+      const next = t[i+1] || '';
+      if (next === ' ' || next === '\n' || next === '\t' || !next) {
+        result.push(t.slice(start, i + 1));
+        start = i + 1;
+      }
+    }
+    i++;
+  }
+  if (start < t.length) result.push(t.slice(start));
+  return result.length ? result : [t];
+}
+
+// Режим 3: по N слов — уже работает правильно, не трогаем
+
+// Режим 3: по N слов (сохраняет пробелы и переносы)
 function splitWords(t, n) {
-  // Разбиваем на части по n слов, сохраняя все пробелы и переносы
   const parts = [];
   let wordCount = 0;
   let start = 0;
@@ -112,6 +160,7 @@ const input = document.getElementById('inputText');
 const display = document.getElementById('display');
 const lowBtn = document.getElementById('lowBtn');
 const sentBtn = document.getElementById('sentBtn');
+const punctBtn = document.getElementById('punctBtn');
 const applyBtn = document.getElementById('applyBtn');
 const wordCount = document.getElementById('wordCount');
 
@@ -119,6 +168,7 @@ let items = [];
 let idx = 0;
 let hasContent = false;
 let lastText = input.value;
+let currentMode = 'words';
 
 function render() {
   if (!items.length || !hasContent) {
@@ -134,14 +184,6 @@ function render() {
     html += `<span class="${cls}">${escapeHtml(items[i])}</span>`;
   }
   display.innerHTML = html;
-
-  if (idx > 0) {
-    const revealed = display.querySelectorAll('.revealed');
-    if (revealed.length) {
-      const last = revealed[revealed.length - 1];
-      last.scrollIntoView({ block: 'end', behavior: 'smooth' });
-    }
-  }
   applyFontSize();
 }
 
@@ -151,6 +193,8 @@ function loadFromTextbox(mode) {
 
   if (mode === 'sentences') {
     items = splitSentences(raw);
+  } else if (mode === 'punct') {
+    items = splitPunct(raw);
   } else {
     items = splitWords(raw, n);
   }
@@ -162,14 +206,21 @@ function loadFromTextbox(mode) {
 lowBtn.onclick = () => {
   input.value = toLower(input.value);
   lastText = input.value;
-  loadFromTextbox('words');
+  loadFromTextbox(currentMode);
 };
 
 sentBtn.onclick = () => {
+  currentMode = 'sentences';
   loadFromTextbox('sentences');
 };
 
+punctBtn.onclick = () => {
+  currentMode = 'punct';
+  loadFromTextbox('punct');
+};
+
 applyBtn.onclick = () => {
+  currentMode = 'words';
   loadFromTextbox('words');
 };
 
@@ -190,7 +241,7 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'ArrowLeft') {
     e.preventDefault();
     if (!hasContent) {
-      loadFromTextbox('words');
+      loadFromTextbox(currentMode);
       return;
     }
     if (idx > 0) { idx--; render(); }
@@ -199,7 +250,7 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'ArrowRight') {
     e.preventDefault();
     if (!hasContent) {
-      loadFromTextbox('words');
+      loadFromTextbox(currentMode);
       return;
     }
     if (idx < items.length - 1) { idx++; render(); }
@@ -209,7 +260,7 @@ document.addEventListener('keydown', (e) => {
   if (e.key === ' ' || e.key === 'Enter') {
     e.preventDefault();
     if (!hasContent) {
-      loadFromTextbox('words');
+      loadFromTextbox(currentMode);
       return;
     }
     if (e.shiftKey) {
@@ -221,6 +272,37 @@ document.addEventListener('keydown', (e) => {
 });
 
 applyFontSize();
+
+// ===== МОБИЛЬНЫЙ ТАП =====
+let isTouchDevice = false;
+let lastTouchTime = 0;
+
+document.addEventListener('touchstart', function() {
+  isTouchDevice = true;
+  lastTouchTime = Date.now();
+}, { passive: true });
+
+document.addEventListener('click', function(e) {
+  if (!isTouchDevice) return;
+  if (Date.now() - lastTouchTime > 500) return;
+  
+  if (e.target.tagName === 'TEXTAREA') return;
+  if (e.target.closest('.row')) return;
+  
+  const screenWidth = window.innerWidth;
+  const clickX = e.clientX;
+  
+  if (!hasContent) {
+    loadFromTextbox(currentMode);
+    return;
+  }
+  
+  if (clickX > screenWidth / 2) {
+    if (idx < items.length - 1) { idx++; render(); }
+  } else {
+    if (idx > 0) { idx--; render(); }
+  }
+});
 </script>
 </body>
 </html>
