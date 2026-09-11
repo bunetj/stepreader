@@ -1,0 +1,1037 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Telegram chat simulator</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background: #0e1621;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            color: #e8edf2;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .app {
+            width: 100%;
+            max-width: 420px;
+            height: 100vh;
+            max-height: 700px;
+            display: flex;
+            flex-direction: column;
+            padding: 8px;
+            gap: 8px;
+        }
+
+        .textbox-area {
+            flex-shrink: 0;
+        }
+
+        .textbox-area textarea {
+            width: 100%;
+            height: 70px;
+            padding: 10px 14px;
+            background: #1f2c38;
+            border: 1px solid #2b3b4a;
+            border-radius: 12px;
+            color: #e8edf2;
+            font-size: 13px;
+            resize: vertical;
+            font-family: inherit;
+        }
+
+        .textbox-area textarea:focus {
+            outline: none;
+        }
+
+        .textbox-area textarea::placeholder {
+            color: #5e6f7e;
+        }
+
+        .toolbar {
+            flex-shrink: 0;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            background: #1f2c38;
+            border-radius: 12px;
+            padding: 6px 10px;
+            border: 1px solid #2b3b4a;
+            align-items: center;
+        }
+
+        .menu-section {
+            display: flex;
+            align-items: center;
+            gap: 3px;
+            padding: 0 4px;
+            border-right: 1px solid #2b3b4a;
+        }
+
+        .menu-section:last-child {
+            border-right: none;
+        }
+
+        .menu-label {
+            font-size: 10px;
+            color: #5e6f7e;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-right: 4px;
+            font-weight: 600;
+        }
+
+        .menu-btn {
+            background: transparent;
+            border: none;
+            color: #8e9aa5;
+            padding: 3px 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+        .menu-label-display {
+            font-size: 11px;
+            color: #8e9aa5;
+            min-width: 28px;
+            text-align: center;
+        }
+
+        .menu-range {
+            width: 60px;
+            accent-color: #666;
+            background: #2b3b4a;
+            height: 4px;
+            border-radius: 2px;
+        }
+
+        .menu-range::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #2b5278;
+            cursor: pointer;
+        }
+
+        .menu-range::-moz-range-thumb {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #2b5278;
+            border: none;
+            cursor: pointer;
+        }
+
+        .menu-input-label {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 11px;
+            font-weight: 400;
+            color: #8e9aa5;
+        }
+
+        .menu-input-label input {
+            width: 48px;
+            padding: 2px 12px 2px 8px;
+            background: #2b3b4a;
+            border: none;
+            border-radius: 4px;
+            color: #e8edf2;
+            font-size: 12px;
+            text-align: center;
+        }
+
+        .menu-input-label input:focus {
+            outline: 1px solid #666;
+        }
+
+        .chat-wrapper {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 80vh;
+        }
+
+        .chat {
+            flex: 1;
+            background: #17212b;
+            border-radius: 16px;
+            overflow: hidden;
+            border: 1px solid #2b3b4a;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            padding: 10px 16px;
+            background: #1f2c38;
+            border-bottom: 1px solid #2b3b4a;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-shrink: 0;
+        }
+
+        .avatar {
+            width: 32px;
+            height: 32px;
+            background: #2b5278;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+        }
+
+        .chat-name {
+            color: #e8edf2;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .msgs {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            min-height: 0;
+        }
+
+        .msgs::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .msgs::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .msgs::-webkit-scrollbar-thumb {
+            background: #2b3b4a;
+            border-radius: 2px;
+        }
+
+        .msg {
+            max-width: 85%;
+            padding: 4px 12px;
+            border-radius: 16px;
+            font-size: 14px;
+            color: #e8edf2;
+            white-space: pre-wrap;
+            word-break: break-word;
+            line-height: 1.4;
+        }
+
+        .msg.own {
+            background: #2b5278;
+            align-self: flex-end;
+            border-bottom-right-radius: 4px;
+            display: inline-block;
+        }
+
+        .msg.recv {
+            background: #2b3b4a;
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+            display: inline-block;
+        }
+
+        .input-area {
+            background: #1f2c38;
+            padding: 8px 12px;
+            border-top: 1px solid #2b3b4a;
+            display: flex;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+
+        .input-area textarea {
+            flex: 1;
+            border: none;
+            border-radius: 20px;
+            padding: 8px 14px;
+            background: #2b3b4a;
+            color: #e8edf2;
+            min-height: 36px;
+            max-height: 80px;
+            resize: vertical;
+            font-size: 14px;
+            font-family: inherit;
+        }
+
+        .input-area textarea:focus {
+            outline: none;
+        }
+
+        .input-area textarea::placeholder {
+            color: #5e6f7e;
+        }
+
+        .input-area button {
+            padding: 6px 16px;
+            background: #2b5278;
+            border: none;
+            border-radius: 20px;
+            color: #e8edf2;
+            cursor: pointer;
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+
+        .input-area button:disabled {
+            cursor: pointer;
+            opacity: 1;
+        }
+
+        .chat-footer {
+            padding: 4px 4px 0 4px;
+            display: flex;
+            justify-content: flex-end;
+            flex-shrink: 0;
+        }
+
+        .chat-info {
+            color: #5e6f7e;
+            font-size: 12px;
+            cursor: default;
+        }
+
+        
+
+        
+
+        
+
+        .modal-box h3 {
+            color: #e8edf2;
+            margin-bottom: 2px;
+        }
+
+        .modal-box .sub {
+            color: #5e6f7e;
+            font-size: 12px;
+            margin-bottom: 14px;
+        }
+
+        .modal-box label {
+            color: #8e9aa5;
+            font-size: 12px;
+            display: block;
+            margin-bottom: 2px;
+        }
+
+        .modal-box input {
+            width: 100%;
+            padding: 8px 12px;
+            background: #2b3b4a;
+            border: none;
+            border-radius: 8px;
+            color: #e8edf2;
+            margin-bottom: 12px;
+            font-size: 14px;
+        }
+
+        .modal-box input:focus {
+            outline: none;
+        }
+
+        .modal-box .btn-row {
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+        }
+
+        .modal-box .color-picker-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        .modal-box .color-preview {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: 2px solid #3a4f62;
+            cursor: pointer;
+            background: #2b5278;
+            flex-shrink: 0;
+        }
+        .modal-box .color-preview:hover { border-color: #8e9aa5; }
+        .modal-box #modalColor {
+            position: absolute;
+            opacity: 0;
+            width: 0;
+            height: 0;
+            pointer-events: none;
+        }
+        .modal-box .btn-row button {
+            padding: 6px 16px;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+        .modal-box .btn-cancel {
+            background: #2b3b4a;
+            color: #8e9aa5;
+        }
+
+        .modal-box .btn-save {
+            background: #2b5278;
+            color: #e8edf2;
+        }
+
+        @media (max-width: 440px) {
+            .app {
+                padding: 4px;
+                max-height: 100vh;
+                height: 100vh;
+            }
+
+            .toolbar {
+                padding: 4px 6px;
+                gap: 2px;
+            }
+
+            .menu-section {
+                padding: 0 2px;
+            }
+
+            .menu-label {
+                font-size: 9px;
+                display: none;
+            }
+
+            .menu-btn {
+                font-size: 12px;
+                padding: 2px 6px;
+            }
+
+            .menu-range {
+                width: 40px;
+            }
+        }
+    </style>
+    <link rel="stylesheet" href="../shared/modal.css">
+</head>
+
+<body>
+
+    <div class="app">
+        <div class="chat-wrapper">
+            <div class="chat">
+                <div class="header">
+                    <div class="avatar" id="avatar">👤</div>
+                    <div class="chat-name" id="chatName">interlocutor</div>
+                </div>
+                <div class="msgs" id="msgs"></div>
+                <div class="input-area">
+                    <textarea id="ownInput" placeholder="Type message..." rows="1"></textarea>
+                    <button id="sendBtn">➤</button>
+                </div>
+            </div>
+            <div class="chat-footer">
+                <span class="chat-info" title="press enter to receive">ℹ️</span>
+            </div>
+        </div>
+
+        <div class="toolbar" id="toolbar"></div>
+        <div class="textbox-area">
+            <textarea id="inputText" placeholder="Paste script with --- between messages"></textarea>
+        </div>
+
+    </div>
+
+    <div class="modal" id="modal">
+        <div class="modal-box">
+            <h3>Names</h3>
+            <div class="sub">For export</div>
+            <label>Your name</label>
+            <input type="text" id="modalOwn" value="user">
+            <label>Interlocutor</label>
+            <input type="text" id="modalOther" value="interlocutor">
+            <label>Emoji</label>
+            <input type="text" id="modalEmoji" value="👤" maxlength="2">
+            <label>Color</label>
+            <div class="color-picker-row">
+                <div class="color-preview" id="modalColorPreview"></div>
+                <input type="color" id="modalColor" value="#2b5278">
+            </div>
+            <div class="btn-row">
+                <button class="btn-cancel" id="modalCancel">Cancel</button>
+                <button class="btn-save" id="modalSave">Save</button>
+            </div>
+        </div>
+    </div>
+
+            <script src="../shared/ui.js"></script>
+<script src="../shared/text.js"></script>
+    <script src="../shared/prep.js"></script>
+<script>
+        // ============================================================
+        // CHAT MFV - Working Version
+        // ============================================================
+
+        // STATE
+        const state = {
+            ownName: 'user',
+            otherName: 'interlocutor',
+            avatarEmoji: '👤',
+            avatarColor: '#2b5278',
+            queue: [],
+            finished: false,
+            wpm: 200,
+            fontSize: 14,
+            currentIndex: 0,
+            displayedCount: 0,
+            userScrolledUp: false,
+            isProgrammaticScroll: false,
+        };
+
+        // DOM REFS
+        const input = document.getElementById('inputText');
+        const msgs = document.getElementById('msgs');
+        const ownInput = document.getElementById('ownInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const chatName = document.getElementById('chatName');
+        const modal = document.getElementById('modal');
+        const modalOwn = document.getElementById('modalOwn');
+        const modalOther = document.getElementById('modalOther');
+        const modalCancel = document.getElementById('modalCancel');
+        const modalSave = document.getElementById('modalSave');
+        const modalEmoji = document.getElementById('modalEmoji');
+        const modalColor = document.getElementById('modalColor');
+        const modalColorPreview = document.getElementById('modalColorPreview');
+        const avatar = document.getElementById('avatar');
+
+        // Detect manual scroll (ignore programmatic)
+        msgs.addEventListener('scroll', function () {
+            // Ignore programmatic scrolls
+            if (state.isProgrammaticScroll) {
+                state.isProgrammaticScroll = false;
+                return;
+            }
+            var isAtBottom = msgs.scrollHeight - msgs.scrollTop - msgs.clientHeight < 10;
+            if (isAtBottom) {
+                state.userScrolledUp = false;
+            } else {
+                state.userScrolledUp = true;
+            }
+        });
+
+        // HELPERS
+        function splitBySeparator(text) {
+            return text.split(/\n\s*---\s*\n/).filter(function (s) { return s.trim(); });
+        }
+
+        function getDelay(item) {
+            var chars = item ? item.length : 0;
+            var delay = 600 + Math.random() * 300;
+            var typingTime = (chars / state.wpm) * 60000;
+            if (chars > 30) typingTime *= 0.85;
+            if (chars > 80) typingTime *= 0.70;
+            if (chars > 150) typingTime *= 0.60;
+            delay += typingTime;
+            if (item && /[.!?]$/.test(item)) delay += 250 + Math.random() * 150;
+            if (item && /[,;:]$/.test(item)) delay += 100 + Math.random() * 100;
+            delay *= (0.85 + Math.random() * 0.3);
+            return Math.max(400, Math.min(10000, delay));
+        }
+
+        // FONT
+        function applyFontSize() {
+            var els = document.querySelectorAll('.msg');
+            for (var i = 0; i < els.length; i++) {
+                els[i].style.fontSize = state.fontSize + 'px';
+            }
+            var label = document.getElementById('sizeLabel');
+            if (label) label.textContent = state.fontSize + 'px';
+        }
+
+        function fontIncrease() {
+            state.fontSize = Math.min(state.fontSize + 2, 40);
+            applyFontSize();
+        }
+        function fontDecrease() {
+            state.fontSize = Math.max(state.fontSize - 2, 10);
+            applyFontSize();
+        }
+
+        // CHAT FUNCTIONS
+        function updateChatName() {
+            chatName.textContent = state.otherName;
+            if (avatar) {
+                avatar.textContent = state.avatarEmoji || '👤';
+                avatar.style.background = state.avatarColor || '#2b5278';
+            }
+        }
+
+        function addMsg(text, type) {
+            var d = document.createElement('div');
+            d.className = 'msg ' + type;
+            d.textContent = text;
+            msgs.appendChild(d);
+            state.displayedCount++;
+            applyFontSize();
+            // Only scroll if user hasn't scrolled up
+            if (!state.userScrolledUp) {
+                state.isProgrammaticScroll = true;
+                msgs.scrollTop = msgs.scrollHeight;
+            }
+        }
+
+        function updateUI() {
+            var hasQueue = state.queue.length > 0;
+            var hasOwn = ownInput.value.trim() !== '';
+            var hasScript = input.value.trim() !== '';
+            sendBtn.disabled = !(hasQueue || hasOwn || hasScript);
+        }
+
+        function loadChat() {
+            var raw = input.value;
+            state.queue = splitBySeparator(raw, '\n---\n');
+            state.finished = false;
+            state.currentIndex = 0;
+            state.displayedCount = 0;
+            // NEVER clear messages - preserve chat history
+            updateUI();
+        }
+
+        function sendScenario() {
+            if (state.finished || !state.queue.length) return;
+            var next = state.queue.shift();
+            // When a new message arrives from the queue, reset scroll state
+            // so user sees the conversation continuing
+            state.userScrolledUp = false;
+            addMsg(next, 'recv');
+            state.currentIndex = state.displayedCount;
+            if (!state.queue.length) {
+                state.finished = true;
+                input.value = '';
+            }
+            updateUI();
+        }
+
+        function sendOwn() {
+            var t = ownInput.value.trim();
+            if (!t) return;
+            // Reset scroll state - user is engaging, go to bottom
+            state.userScrolledUp = false;
+            addMsg(t, 'own');
+            ownInput.value = '';
+            updateUI();
+        }
+
+        function handleSend() {
+            var hasOwn = ownInput.value.trim() !== '';
+            var hasQueue = state.queue.length > 0;
+            var hasScript = input.value.trim() !== '';
+            if (autoPlay && autoPlay.isPlaying()) {
+                // remember position, don't reload
+                autoPlay.stopPlay();
+                if (hasOwn) {
+                    state.userScrolledUp = false;
+                    sendOwn();
+                    return;
+                }
+                // just stop; Play resumes from currentIndex
+                return;
+            }
+            if (hasOwn) {
+                // User is sending a message - reset scroll state
+                state.userScrolledUp = false;
+                sendOwn();
+                return;
+            }
+            if (hasQueue) { sendScenario(); return; }
+            if (hasScript) {
+                state.finished = false;
+                loadChat();
+                if (state.queue.length) sendScenario();
+                return;
+            }
+        }
+
+        function exportChat() {
+            var items = msgs.querySelectorAll('.msg');
+            var result = '';
+            for (var i = 0; i < items.length; i++) {
+                var m = items[i];
+                var isOwn = m.classList.contains('own');
+                var text = m.textContent.trim();
+                if (text) {
+                    result += '[' + (isOwn ? state.ownName : state.otherName) + ']\n' + text + '\n\n';
+                }
+            }
+            if (result) {
+                navigator.clipboard.writeText(result).catch(function () {
+                    var ta = document.createElement('textarea');
+                    ta.value = result;
+                    document.body.appendChild(ta);
+                    ta.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(ta);
+                });
+            }
+        }
+
+
+        // Enter sends, Shift+Enter newline
+        ownInput.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleSend();
+            }
+        });
+
+        // AUTO-PLAY
+        var autoPlay = {
+            _playing: false,
+            _timer: null,
+            isPlaying: function () { return this._playing; },
+            stopPlay: function () {
+                this._playing = false;
+                if (this._timer) { clearTimeout(this._timer); this._timer = null; }
+                var btn = document.getElementById('playBtn');
+                if (btn) btn.textContent = '▶';
+                state.currentIndex = state.displayedCount;
+                // keep currentIndex/displayedCount so Play resumes mid-script
+                // (only reset if the textbox changed since playback started)
+                if (state.queue.length === 0 && input.value.trim() !== '') {
+                    state.finished = false;
+                }
+            },
+            startPlay: function () {
+                if (this._playing) return;
+                // Always reload from textbox to get latest content
+                var raw = input.value;
+                state.queue = splitBySeparator(raw, '\n---\n');
+                var items = state.queue;
+                if (!items.length) {
+                    return;
+                }
+                // Reset if starting fresh
+                if (state.displayedCount >= items.length) {
+                    state.displayedCount = 0;
+                    state.currentIndex = 0;
+                    msgs.innerHTML = '';
+                    state.userScrolledUp = false;
+                }
+                var startIdx = state.currentIndex;
+                if (startIdx >= items.length) {
+                    startIdx = 0;
+                    state.currentIndex = 0;
+                }
+                if (state.displayedCount > 0 && state.displayedCount <= items.length) {
+                    startIdx = state.displayedCount;
+                }
+                if (startIdx === 0 && msgs.children.length > 0) {
+                    // Don't clear messages - preserve history
+                    state.displayedCount = msgs.children.length;
+                    state.userScrolledUp = false;
+                }
+                if (startIdx >= items.length) {
+                    state.finished = true;
+                    updateUI();
+                    return;
+                }
+                var remaining = items.slice(startIdx);
+                if (!remaining.length) return;
+                this._playing = true;
+                var btn = document.getElementById('playBtn');
+                if (btn) btn.textContent = '⏹';
+                var self = this;
+                var idx = 0;
+                var playNext = function () {
+                    if (!self._playing) return;
+                    if (idx < remaining.length) {
+                        var item = remaining[idx];
+                        addMsg(item, 'recv');
+                        state.currentIndex = startIdx + idx + 1;
+                        idx++;
+                        if (idx < remaining.length) {
+                            // Pre-bake delay before showing next message
+                            var nextItem = remaining[idx];
+                            self._timer = setTimeout(playNext, getDelay(nextItem));
+                        } else {
+                            state.finished = true;
+                            self.stopPlay();
+                        }
+                    } else {
+                        state.finished = true;
+                        self.stopPlay();
+                    }
+                    updateUI();
+                };
+                // Start with a delay before first message (bake it first)
+                var firstItem = remaining[0];
+                this._timer = setTimeout(playNext, getDelay(firstItem));
+                // Force scroll to bottom when starting
+                state.userScrolledUp = false;
+                state.isProgrammaticScroll = true;
+                msgs.scrollTop = msgs.scrollHeight;
+                updateUI();
+            }
+        };
+
+        // FORMATTERS
+                        function splitPunct(text) {
+            var cleaned = text.replace(/[.,!?;:""„”’‘‛‚“`´ʹʺʻʼˈˈˊˋˌ״〃＂〟〝〞‟′″‴‵‶‷❝❞〝〞〟＂｢｣—–]/g, '§');
+            return cleaned.split(/§+/).filter(function (s) { return s.trim(); });
+        }
+
+                        // LOW POPUP
+        var lowPopupInstance = null;
+// BUILD MENU
+function buildMenu() {
+    var toolbar = document.getElementById('toolbar');
+    toolbar.innerHTML =
+        '<div class="menu-section">' +
+        '   <span class="menu-label">PREP</span>' +
+        '   <button class="menu-btn" id="lowBtn">low</button>' +
+        '   <button class="menu-btn" id="punctBtn">punct</button>' +
+        '   <button class="menu-btn" id="sentBtn">sentences</button>' +
+        '</div>' +
+        '<div class="menu-section">' +
+        '   <span class="menu-label">CHUNK words:</span>' +
+        '   <input type="number" id="wordCountInput" value="3" min="1" style="width:48px;padding:2px 12px 2px 8px;background:#2b3b4a;border:none;border-radius:4px;color:#e8edf2;font-size:12px;text-align:center;">' +
+        '   <button class="menu-btn" id="applyBtn">apply</button>' +
+        '</div>' +
+        '<div class="menu-section">' +
+        '   <span class="menu-label">FONT</span>' +
+        '   <button class="menu-btn" id="fontSmall">A−</button>' +
+        '   <span class="menu-label-display" id="sizeLabel">14px</span>' +
+        '   <button class="menu-btn" id="fontBig">A+</button>' +
+        '</div>' +
+        '<div class="menu-section">' +
+        '   <span class="menu-label">PLAY</span>' +
+        '   <button class="menu-btn" id="playBtn">▶</button>' +
+        '   <button class="menu-btn" id="slowerBtn">🐢−</button>' +
+        '   <input type="range" class="menu-range" id="speedSlider" min="50" max="700" step="25" value="200">' +
+        '   <button class="menu-btn" id="fasterBtn">🐇+</button>' +
+        '   <span class="menu-label-display" id="speedValue" title="Characters Per Minute">200</span>' +
+        '</div>' +
+        '<div class="menu-section">' +
+        '   <span class="menu-label">OTHER</span>' +
+        '   <button class="menu-btn" id="namesBtn">👤</button>' +
+        '   <button class="menu-btn" id="exportBtn">📋</button>' +
+        '   <button class="menu-btn" id="clearBtn">🗑</button>' +
+        '</div>';
+}
+
+
+// telegram: split by `---` OR blank lines
+function tgSplit(raw) {
+    return raw.split(/\n\s*---\s*\n|\n\s*\n/)
+              .map(function (s) { return s.trim(); })
+              .filter(function (s) { return s; });
+}
+function tgJoin(blocks) {
+    return blocks.join('\n---\n');
+}
+
+// MENU EVENTS
+function initMenu() {
+    document.getElementById('fontSmall').onclick = fontDecrease;
+    document.getElementById('fontBig').onclick = fontIncrease;
+    document.getElementById('lowBtn').onclick = function () {
+        var blocks = tgSplit(input.value);
+        // open the shared popup on a temp textarea, then re-join with ---
+        var tmp = document.createElement('textarea');
+        tmp.value = blocks.join('\n\n');
+        showLowPopup(tmp, '\n\n');
+        // poll for close and copy back
+        var poll = setInterval(function () {
+            if (!document.getElementById('__lowPopup')) {
+                clearInterval(poll);
+                input.value = tgJoin(tgSplit(tmp.value));
+                loadChat();
+                updateUI();
+            }
+        }, 50);
+        if (state.queue) { state.queue = []; state.displayedCount = 0; state.currentIndex = 0; }
+    };
+    document.getElementById('punctBtn').onclick = function () {
+        var blocks = tgSplit(input.value);
+        var out = [];
+        for (var b = 0; b < blocks.length; b++) {
+            var parts = splitPunct(blocks[b]);
+            for (var i = 0; i < parts.length; i++) {
+                var p = parts[i].trim();
+                if (p) out.push(p);
+            }
+        }
+        if (out.length) {
+            input.value = tgJoin(out);
+            loadChat();
+            updateUI();
+        }
+    };
+    document.getElementById('sentBtn').onclick = function () {
+        var blocks = tgSplit(input.value);
+        var out = [];
+        for (var b = 0; b < blocks.length; b++) {
+            var parts = splitSentences(blocks[b]);
+            for (var i = 0; i < parts.length; i++) {
+                var p = parts[i].trim();
+                if (p) out.push(p);
+            }
+        }
+        if (out.length) {
+            input.value = tgJoin(out);
+            loadChat();
+            updateUI();
+        }
+    };
+    document.getElementById('applyBtn').onclick = function () {
+        var n = parseInt(document.getElementById('wordCountInput').value) || 3;
+        var blocks = tgSplit(input.value);
+        var out = [];
+        for (var b = 0; b < blocks.length; b++) {
+            var words = blocks[b].split(/\s+/).filter(function (w) { return w; });
+            for (var i = 0; i < words.length; i += n) {
+                out.push(words.slice(i, i + n).join(' '));
+            }
+        }
+        if (out.length) {
+            input.value = tgJoin(out);
+            loadChat();
+            updateUI();
+        }
+    };
+    var speedSlider = document.getElementById('speedSlider');
+    var speedValue = document.getElementById('speedValue');
+    document.getElementById('slowerBtn').onclick = function () {
+        state.wpm = Math.max(state.wpm - 25, 50);
+        speedSlider.value = state.wpm;
+        speedValue.textContent = state.wpm;
+    };
+    document.getElementById('fasterBtn').onclick = function () {
+        state.wpm = Math.min(state.wpm + 25, 700);
+        speedSlider.value = state.wpm;
+        speedValue.textContent = state.wpm;
+    };
+    speedSlider.oninput = function (e) {
+        state.wpm = parseInt(e.target.value);
+        speedValue.textContent = state.wpm;
+    };
+    speedValue.textContent = state.wpm;
+    document.getElementById('playBtn').onclick = function () {
+        if (autoPlay.isPlaying()) autoPlay.stopPlay();
+        else autoPlay.startPlay();
+    };
+    document.getElementById('namesBtn').onclick = function () {
+        modalOwn.value = state.ownName;
+        modalOther.value = state.otherName;
+        if (modalEmoji) modalEmoji.value = state.avatarEmoji || '👤';
+        if (modalColor) modalColor.value = state.avatarColor || '#2b5278';
+        if (modalColorPreview) modalColorPreview.style.background = state.avatarColor || '#2b5278';
+        modal.classList.add('active');
+        setTimeout(function () { modalOwn.focus(); }, 50);
+    };
+    document.getElementById('exportBtn').onclick = exportChat;
+    document.getElementById('clearBtn').onclick = function () {
+        if (!confirm('Clear chat?')) return;
+        msgs.innerHTML = '';
+        state.queue = [];
+        state.displayedCount = 0;
+        state.currentIndex = 0;
+        state.finished = false;
+        updateUI();
+    };
+}
+
+    // Reorganize menu - move prep/chunk to bottom
+        
+
+        // wire modal buttons
+        if (modalColorPreview && modalColor) {
+            modalColorPreview.onclick = function () { modalColor.click(); };
+            modalColor.oninput = function () {
+                modalColorPreview.style.background = modalColor.value;
+            };
+        }
+
+        modalCancel.onclick = function () { modal.classList.remove('active'); };
+        modalSave.onclick = function () {
+            state.ownName = modalOwn.value.trim() || 'user';
+            state.otherName = modalOther.value.trim() || 'interlocutor';
+            state.avatarEmoji = (modalEmoji && modalEmoji.value.trim()) || '👤';
+            state.avatarColor = (modalColor && modalColor.value) || '#2b5278';
+            updateChatName();
+            modal.classList.remove('active');
+        };
+        modal.onclick = function (e) {
+            if (e.target === modal) modal.classList.remove('active');
+        };
+
+
+// --- telegram-local low popup, styled to match the Names modal ---
+    // Call reorganization after menu is built
+    buildMenu();
+    reorganizeMenu();
+        initMenu();
+        applyFontSize();
+        updateChatName();
+        loadChat();
+        updateUI();
+        // Initial scroll to bottom if messages exist
+        setTimeout(function () {
+            state.isProgrammaticScroll = true;
+            msgs.scrollTop = msgs.scrollHeight;
+        }, 100);
+
+        console.log('Chat MFV ready');
+        console.log('Shortcuts: Space=Play, R=Reset, F=Focus input');
+    
+        // ESC closes modal/popup, Enter saves/applies
+        document.addEventListener('keydown', function (e) {
+            var low = document.getElementById('__lowPopup');
+            if (low) {
+                if (e.key === 'Escape') { e.preventDefault(); low.remove(); return; }
+                if (e.key === 'Enter') {
+                    if (e.target && e.target.tagName === 'TEXTAREA') return;
+                    e.preventDefault();
+                    var apply = low.querySelector('#lowApply');
+                    if (apply) apply.click();
+                    return;
+                }
+            }
+            var m = document.getElementById('modal');
+            if (m && m.classList.contains('active')) {
+                if (e.key === 'Escape') {
+                    e.preventDefault();
+                    m.classList.remove('active');
+                    return;
+                }
+                if (e.key === 'Enter') {
+                    if (e.target && e.target.tagName === 'TEXTAREA') return;
+                    e.preventDefault();
+                    var s = document.getElementById('modalSave');
+                    if (s) s.click();
+                    return;
+                }
+            }
+        });
+
+</script>
+
+    <script src="../shared/bridge.js"></script>
+</body>
+
+</html>

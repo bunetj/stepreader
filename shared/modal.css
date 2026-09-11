@@ -1,0 +1,82 @@
+/* shared/modal.css — one modal look for all apps */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+}
+.modal.active {
+    display: flex;
+}
+.modal-box {
+    background: #1f2c38;
+    padding: 24px;
+    border-radius: 16px;
+    max-width: 340px;
+    width: 90%;
+    border: 1px solid #2b3b4a;
+    color: #e8edf2;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+.modal-box h3 {
+    color: #e8edf2;
+    margin: 0 0 6px 0;
+    font-size: 18px;
+    font-weight: 600;
+}
+.modal-box .sub {
+    color: #5e6f7e;
+    font-size: 12px;
+    margin-bottom: 14px;
+}
+.modal-box label {
+    color: #8e9aa5;
+    font-size: 13px;
+    display: block;
+    margin: 8px 0;
+    cursor: pointer;
+}
+.modal-box input[type="text"],
+.modal-box input[type="number"] {
+    width: 100%;
+    padding: 8px 12px;
+    background: #2b3b4a;
+    border: none;
+    border-radius: 8px;
+    color: #e8edf2;
+    margin-bottom: 12px;
+    font-size: 14px;
+    outline: none;
+}
+.modal-box input[type="checkbox"] {
+    width: auto;
+    margin-right: 8px;
+    accent-color: #2b5278;
+}
+.modal-box .btn-row {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+    margin-top: 16px;
+}
+.modal-box .btn-row button {
+    padding: 6px 16px;
+    border: none;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 13px;
+}
+.modal-box .btn-cancel {
+    background: #2b3b4a;
+    color: #8e9aa5;
+}
+.modal-box .btn-save {
+    background: #2b5278;
+    color: #e8edf2;
+}

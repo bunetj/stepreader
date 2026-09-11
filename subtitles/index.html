@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>subtitles simulator</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background: #0e1621;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            color: #e8edf2;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .app {
+            width: 100%;
+            max-width: 640px;
+            height: 100vh;
+            max-height: 500px;
+            display: flex;
+            flex-direction: column;
+            padding: 8px;
+            gap: 8px;
+        }
+
+        .textbox-area {
+            flex-shrink: 0;
+        }
+
+        .textbox-area textarea {
+            width: 100%;
+            height: 70px;
+            padding: 10px 14px;
+            background: #1f2c38;
+            border: 1px solid #2b3b4a;
+            border-radius: 12px;
+            color: #e8edf2;
+            font-size: 13px;
+            resize: vertical;
+            font-family: inherit;
+        }
+
+        .textbox-area textarea:focus {
+            outline: none;
+        }
+
+        .textbox-area textarea::placeholder {
+            color: #5e6f7e;
+        }
+
+        .toolbar {
+            flex-shrink: 0;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            background: #1f2c38;
+            border-radius: 12px;
+            padding: 6px 10px;
+            border: 1px solid #2b3b4a;
+            align-items: center;
+        }
+
+        .menu-section {
+            display: flex;
+            align-items: center;
+            gap: 3px;
+            padding: 0 4px;
+            border-right: 1px solid #2b3b4a;
+        }
+
+        .menu-section:last-child {
+            border-right: none;
+        }
+
+        .menu-label {
+            font-size: 10px;
+            color: #5e6f7e;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-right: 4px;
+            font-weight: 600;
+        }
+
+        .menu-btn {
+            background: transparent;
+            border: none;
+            color: #8e9aa5;
+            padding: 3px 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+        .menu-label-display {
+            font-size: 11px;
+            color: #8e9aa5;
+            min-width: 28px;
+            text-align: center;
+        }
+
+        .menu-range {
+            width: 60px;
+            accent-color: #666;
+            background: #2b3b4a;
+            height: 4px;
+            border-radius: 2px;
+        }
+
+        .menu-range::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #666;
+            cursor: pointer;
+        }
+
+        .menu-range::-moz-range-thumb {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #666;
+            border: none;
+            cursor: pointer;
+        }
+
+        .menu-input-label {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 11px;
+            font-weight: 400;
+            color: #8e9aa5;
+        }
+
+        .menu-input-label input {
+            width: 48px;
+            padding: 2px 12px 2px 8px;
+            background: #2b3b4a;
+            border: none;
+            border-radius: 4px;
+            color: #e8edf2;
+            font-size: 12px;
+            text-align: center;
+        }
+
+        .menu-input-label input:focus {
+            outline: 1px solid #666;
+        }
+
+        .sub-wrap {
+            flex: 1;
+            background: #17212b;
+            border-radius: 16px;
+            border: 1px solid #2b3b4a;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            min-height: 0;
+        }
+
+        .sub-text {
+            background: #000;
+            color: #fff;
+            font-size: 28px;
+            font-weight: 500;
+            padding: 12px 24px;
+            border-radius: 8px;
+            text-align: center;
+            white-space: pre-wrap;
+            word-break: break-word;
+            max-width: 90%;
+            display: inline-block;
+        }
+
+        .footer {
+            padding: 4px 4px 0 4px;
+            display: flex;
+            justify-content: flex-end;
+            flex-shrink: 0;
+        }
+
+        .footer-info {
+            color: #5e6f7e;
+            font-size: 12px;
+            cursor: default;
+        }
+
+        
+
+        
+
+        
+
+        .modal-box h3 {
+            color: #e8edf2;
+            margin-bottom: 2px;
+        }
+
+        .modal-box .sub {
+            color: #5e6f7e;
+            font-size: 12px;
+            margin-bottom: 14px;
+        }
+
+        .modal-box label {
+            color: #8e9aa5;
+            font-size: 12px;
+            display: block;
+            margin-bottom: 2px;
+        }
+
+        .modal-box input {
+            width: 100%;
+            padding: 8px 12px;
+            background: #2b3b4a;
+            border: none;
+            border-radius: 8px;
+            color: #e8edf2;
+            margin-bottom: 12px;
+            font-size: 14px;
+        }
+
+        .modal-box input:focus {
+            outline: none;
+        }
+
+        .modal-box .btn-row {
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+        }
+
+        .modal-box .btn-row button {
+            padding: 6px 16px;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+        .modal-box .btn-cancel {
+            background: #2b3b4a;
+            color: #8e9aa5;
+        }
+
+        .modal-box .btn-save {
+            background: #444;
+            color: #e8edf2;
+        }
+
+        @media (max-width: 440px) {
+            .app {
+                padding: 4px;
+                max-height: 100vh;
+                height: 100vh;
+            }
+
+            .toolbar {
+                padding: 4px 6px;
+                gap: 2px;
+            }
+
+            .menu-section {
+                padding: 0 2px;
+            }
+
+            .menu-label {
+                font-size: 9px;
+                display: none;
+            }
+
+            .menu-btn {
+                font-size: 12px;
+                padding: 2px 6px;
+            }
+
+            .menu-range {
+                width: 40px;
+            }
+
+            .sub-text {
+                font-size: 20px;
+                padding: 8px 16px;
+            }
+        }
+    </style>
+    <link rel="stylesheet" href="../shared/modal.css">
+</head>
+
+<body>
+
+    <div class="app">
+        <div class="sub-wrap">
+            <div class="sub-text" id="display"></div>
+        </div>
+
+        <div class="toolbar" id="toolbar"></div>
+        <div class="textbox-area">
+            <textarea id="inputText" placeholder="Paste text with blank lines between subtitles"></textarea>
+        </div>
+
+    </div>
+
+            <script src="../shared/ui.js"></script>
+<script src="../shared/text.js"></script>
+    <script src="../shared/prep.js"></script>
+<script>
+        // ============================================================
+        // SUBTITLE MFV - Minimal Functional Version
+        // ============================================================
+
+        // STATE
+        const state = {
+            blocks: [],
+            idx: 0,
+            hasContent: false,
+            wpm: 250,
+            fontSize: 20,
+        };
+
+        // DOM REFS
+        const input = document.getElementById('inputText');
+        const display = document.getElementById('display');
+
+        // HELPERS
+                var WRAP_WIDTH = 40;
+        function wrapText(t) {
+            return t.split('\n').map(function (line) {
+                var words = line.split(/\s+/).filter(Boolean);
+                var out = [], cur = '';
+                for (var i = 0; i < words.length; i++) {
+                    var w = words[i];
+                    if (cur && (cur + ' ' + w).length > WRAP_WIDTH) { out.push(cur); cur = w; }
+                    else { cur = cur ? cur + ' ' + w : w; }
+                }
+                if (cur) out.push(cur);
+                return out.join('\n');
+            }).join('\n');
+        }
+
+        function getDelay(item) {
+            var chars = item ? item.length : 0;
+            var words = Math.max(chars / 5, 1);
+            var msPerWord = 60000 / state.wpm;
+
+            // Reading time based on word count
+            var readingTime = words * msPerWord;
+
+            // Base pause: longer messages get slightly longer pause
+            // Minimum 300ms, scales with message length, capped at 1200ms
+            var basePause = 300 + (words * 10);
+            basePause = Math.min(basePause, 1200);
+
+            // Punctuation adds extra pause
+            var punctPause = 0;
+            if (item && /[.!?]$/.test(item)) {
+                punctPause = 200 + Math.random() * 200;
+            } else if (item && /[,;:]$/.test(item)) {
+                punctPause = 100 + Math.random() * 100;
+            }
+
+            var delay = readingTime + basePause + punctPause;
+
+            // Natural variation
+            delay *= (0.85 + Math.random() * 0.3);
+
+            // Clamp
+            delay = Math.max(delay, 800);
+            delay = Math.min(delay, 15000);
+            return delay;
+        }
+
+        // FONT
+        function applyFontSize() {
+            display.style.fontSize = state.fontSize + 'px';
+            var label = document.getElementById('sizeLabel');
+            if (label) label.textContent = state.fontSize + 'px';
+        }
+
+        function fontIncrease() {
+            state.fontSize = Math.min(state.fontSize + 2, 60);
+            applyFontSize();
+        }
+        function fontDecrease() {
+            state.fontSize = Math.max(state.fontSize - 2, 10);
+            applyFontSize();
+        }
+
+        // SUBTITLE FUNCTIONS
+        function render() {
+            if (!state.blocks.length || !state.hasContent) {
+                display.textContent = '';
+                return;
+            }
+            if (state.idx >= state.blocks.length) state.idx = state.blocks.length - 1;
+            if (state.idx < 0) state.idx = 0;
+            display.textContent = wrapText(state.blocks[state.idx]);
+            applyFontSize();
+        }
+
+        function loadFromTextbox() {
+            if (autoPlay && autoPlay.isPlaying()) {
+                autoPlay.stopPlay();
+            }
+            var raw = input.value;
+            state.blocks = splitByBlankLines(raw);
+            state.hasContent = state.blocks.length > 0;
+            state.idx = 0;
+            render();
+        }
+
+        function triggerLoad() {
+            if (!state.hasContent || state.blocks.length === 0) loadFromTextbox();
+            render();
+        }
+
+        // AUTO-PLAY
+        var autoPlay = {
+            _playing: false,
+            _timer: null,
+            _queue: [],
+            _currentIdx: 0,
+
+            isPlaying: function () { return this._playing; },
+
+            stopPlay: function () {
+                this._playing = false;
+                if (this._timer) { clearTimeout(this._timer); this._timer = null; }
+                var btn = document.getElementById('playBtn');
+                if (btn) btn.textContent = '▶';
+                state.idx = this._currentIdx;
+            },
+
+            startPlay: function () {
+                if (this._playing) return;
+                var items = state.blocks;
+                if (!items.length) {
+                    loadFromTextbox();
+                    items = state.blocks;
+                    if (!items.length) return;
+                }
+
+                this._playing = true;
+                var btn = document.getElementById('playBtn');
+                if (btn) btn.textContent = '⏹';
+
+                var startIdx = state.idx;
+                if (startIdx >= items.length) {
+                    startIdx = 0;
+                    state.idx = 0;
+                }
+
+                this._currentIdx = startIdx;
+                var remaining = items.slice(startIdx);
+                if (!remaining.length) {
+                    this.stopPlay();
+                    return;
+                }
+
+                var self = this;
+                var idx = 0;
+
+                var playNext = function () {
+                    if (!self._playing) return;
+                    if (idx < remaining.length) {
+                        var item = remaining[idx];
+                        display.textContent = wrapText(item);
+                        applyFontSize();
+                        self._currentIdx = startIdx + idx;
+                        state.idx = self._currentIdx;
+                        idx++;
+                        // Delay is for the CURRENT message (time to read it)
+                        // If there are more messages, schedule next after this delay
+                        if (idx < remaining.length) {
+                            self._timer = setTimeout(playNext, getDelay(item));
+                        } else {
+                            // Last message - show it and stop after its delay
+                            self._timer = setTimeout(function () {
+                                self.stopPlay();
+                            }, getDelay(item));
+                        }
+                    } else {
+                        self.stopPlay();
+                    }
+                };
+
+                // Start with first message immediately, delay comes from playNext
+                var firstItem = remaining[0];
+                display.textContent = wrapText(firstItem);
+                applyFontSize();
+                self._currentIdx = startIdx;
+                state.idx = startIdx;
+                idx = 1;
+                // Schedule next message after current message's delay
+                if (remaining.length > 1) {
+                    this._timer = setTimeout(playNext, getDelay(firstItem));
+                } else {
+                    // Only one message - show it and stop after delay
+                    this._timer = setTimeout(function () {
+                        self.stopPlay();
+                    }, getDelay(firstItem));
+                }
+            }
+        };
+
+        // FORMATTERS
+                        function splitPunct(text) {
+            var cleaned = text.replace(/[.,!?;:""„”’‘‛‚“`´ʹʺʻʼˈˈˊˋˌ״〃＂〟〝〞‟′″‴‵‶‷❝❞〝〞〟＂｢｣—–]/g, '§');
+            return cleaned.split(/§+/).filter(function (s) { return s.trim(); });
+        }
+
+                                // LOW POPUP
+        var lowPopupInstance = null;
+
+                // CHUNKING
+                // BUILD MENU
+        function buildMenu() {
+            var toolbar = document.getElementById('toolbar');
+            toolbar.innerHTML =
+                '<div class="menu-section">' +
+                '   <span class="menu-label">PREP</span>' +
+                '   <button class="menu-btn" id="lowBtn">low</button>' +
+                '   <button class="menu-btn" id="punctBtn">punct</button>' +
+                '   <button class="menu-btn" id="sentBtn">sentences</button>' +
+                '</div>' +
+                '<div class="menu-section">' +
+                '   <span class="menu-label">CHUNK words:</span>' +
+                '   <input type="number" id="wordCountInput" value="3" min="1" style="width:48px;padding:2px 12px 2px 8px;background:#2b3b4a;border:none;border-radius:4px;color:#e8edf2;font-size:12px;text-align:center;">' +
+                '   <button class="menu-btn" id="applyBtn">apply</button>' +
+                '</div>' +
+                '<div class="menu-section">' +
+                '   <span class="menu-label">FONT</span>' +
+                '   <button class="menu-btn" id="fontSmall">A−</button>' +
+                '   <span class="menu-label-display" id="sizeLabel">20px</span>' +
+                '   <button class="menu-btn" id="fontBig">A+</button>' +
+                '</div>' +
+                '<div class="menu-section">' +
+                '   <span class="menu-label">PLAY</span>' +
+                '   <button class="menu-btn" id="playBtn">▶</button>' +
+                '   <button class="menu-btn" id="slowerBtn">🐢−</button>' +
+                '   <input type="range" class="menu-range" id="speedSlider" min="50" max="700" step="25" value="250">' +
+                '   <button class="menu-btn" id="fasterBtn">🐇+</button>' +
+                '   <span class="menu-label-display" id="speedValue" >250 WPM</span>' +
+                '</div>';
+        }
+
+        // MENU EVENTS
+        function initMenu() {
+            // Helper to stop autoplay on any control click
+            function stopPlayOnControl() {
+                if (autoPlay && autoPlay.isPlaying()) {
+                    autoPlay.stopPlay();
+                }
+            }
+
+            document.getElementById('fontSmall').onclick = function () {
+                // Font change does NOT stop autoplay
+                fontDecrease();
+            };
+            document.getElementById('fontBig').onclick = function () {
+                // Font change does NOT stop autoplay
+                fontIncrease();
+            };
+            document.getElementById('lowBtn').onclick = function () {
+                stopPlayOnControl();
+                showLowPopup(input, '\n\n');
+            };
+            document.getElementById('punctBtn').onclick = function () {
+                stopPlayOnControl();
+                var raw = input.value;
+                var blocks = splitPunct(raw);
+                if (blocks.length) {
+                    var mapped = [];
+                    for (var i = 0; i < blocks.length; i++) {
+                        mapped.push(blocks[i].trim());
+                    }
+                    input.value = mapped.join('\n\n');
+                    state.blocks = mapped;
+                    state.hasContent = true;
+                    state.idx = 0;
+                    render();
+                }
+            };
+            document.getElementById('sentBtn').onclick = function () {
+                stopPlayOnControl();
+                var raw = input.value;
+                var blocks = splitSentences(raw);
+                if (blocks.length) {
+                    var mapped = [];
+                    for (var i = 0; i < blocks.length; i++) {
+                        mapped.push(blocks[i].trim());
+                    }
+                    input.value = mapped.join('\n\n');
+                    state.blocks = mapped;
+                    state.hasContent = true;
+                    state.idx = 0;
+                    render();
+                }
+            };
+            document.getElementById('applyBtn').onclick = function () {
+                stopPlayOnControl();
+                applyChunking(input, '\n\n'); if (typeof updateDisplay === 'function') updateDisplay(); render();
+            };
+
+            var speedSlider = document.getElementById('speedSlider');
+            var speedValue = document.getElementById('speedValue');
+            document.getElementById('slowerBtn').onclick = function () {
+                // Speed change does NOT stop autoplay
+                state.wpm = Math.max(state.wpm - 25, 50);
+                speedSlider.value = state.wpm;
+                speedValue.textContent = state.wpm + ' WPM';
+            };
+            document.getElementById('fasterBtn').onclick = function () {
+                // Speed change does NOT stop autoplay
+                state.wpm = Math.min(state.wpm + 25, 700);
+                speedSlider.value = state.wpm;
+                speedValue.textContent = state.wpm + ' WPM';
+            };
+            speedSlider.oninput = function (e) {
+                // Speed change does NOT stop autoplay
+                state.wpm = parseInt(e.target.value);
+                speedValue.textContent = state.wpm + ' WPM';
+            };
+            speedValue.textContent = state.wpm + ' WPM';
+
+            document.getElementById('playBtn').onclick = function () {
+                if (autoPlay.isPlaying()) autoPlay.stopPlay();
+                else autoPlay.startPlay();
+            };
+        }
+
+        // KEYBOARD SHORTCUTS
+        document.addEventListener('keydown', function (e) {
+            if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') return;
+            if (e.key === ' ' || e.key === 'Space' || e.code === 'Space') {
+                e.preventDefault();
+                var btn = document.getElementById('playBtn');
+                if (btn) btn.click();
+            }
+            if (e.key === 'r' || e.key === 'R') {
+                // let Ctrl+R / Cmd+R fall through to the browser (reload)
+                if (e.ctrlKey || e.metaKey) return;
+                e.preventDefault();
+                state.idx = 0;
+                loadFromTextbox();
+            }
+            if (e.key === 'f' || e.key === 'F') {
+                e.preventDefault();
+                input.focus();
+                input.select();
+            }
+        });
+
+        // NAVIGATION - Arrow keys (STOP autoplay)
+        document.addEventListener('keydown', function (e) {
+            if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') return;
+            var items = state.blocks;
+            if (!items.length) return;
+            if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+                // let Alt+Arrow fall through to the browser (back/forward)
+                if (e.altKey) return;
+                e.preventDefault();
+                // Stop autoplay when user navigates manually
+                if (autoPlay && autoPlay.isPlaying()) {
+                    autoPlay.stopPlay();
+                }
+                if (e.key === 'ArrowLeft') {
+                    state.idx = Math.max(0, state.idx - 1);
+                } else {
+                    state.idx = Math.min(items.length - 1, state.idx + 1);
+                }
+                render();
+            }
+        });
+
+        // TEXTBOX AUTO-UPDATE
+        input.oninput = function () {
+            var raw = this.value;
+            state.blocks = splitByBlankLines(raw);
+            state.hasContent = state.blocks.length > 0;
+            state.idx = 0;
+            // DON'T render automatically - wait for control click
+            // Display stays showing current subtitle until user acts
+        };
+
+        
+    // Reorganize menu - move prep/chunk to bottom
+        
+    // Call reorganization after menu is built
+    buildMenu();
+    reorganizeMenu();
+        initMenu();
+        applyFontSize();
+        loadFromTextbox();
+
+        console.log('Shortcuts: Space=Play, R=Reset, F=Focus input, ←/→ navigate');
+    </script>
+    <script src="../shared/bridge.js"></script>
+</body>
+
+</html>
